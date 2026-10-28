@@ -1,0 +1,27 @@
+# Nothing of Apple's and nothing of the vendor's (LEGAL.md): firmware is pulled from your own phone,
+# the iOS image is built from your own IPSW, and the two headers mtkloader/build.sh makes are never kept.
+fw-*/
+mtkloader/touchfw.h
+mtkloader/font8x16.h
+mtkloader/*.o
+mtkloader/*.bin
+mtkloader/*.gz
+mtkloader/*.img
+*.img
+*.ipsw
+*.dmg
+*.apfs
+*.dtb
+*.fd
+*.bin
+*.ko
+*.png
+*.jpg
+*.jpeg
+*.heic
+*.mp4
+*.mov
+*.metallib
+*.dylib
+__pycache__/
+.DS_Store

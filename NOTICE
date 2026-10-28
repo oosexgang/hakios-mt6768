@@ -1,0 +1,16 @@
+hakios-mt6768 -- the Infinix Hot 20 (X6826B, MediaTek Helio G85 / MT6768) for HakiOS
+
+Licenses
+  kernel/        Apple Public Source License 2.0 (LICENSE.APSL): files written for, and built into,
+                 Apple's XNU (xnu-8796.121.2).
+  everything else  MIT (LICENSE).
+
+Third-party code: none is copied into this repository. Register addresses, field layouts and the
+order of hardware steps were read from the phone itself (its live device tree, over adb) and from
+public sources, which are named where they are used:
+  - MediaTek's Linux drivers as published by Xiaomi (github.com/MiCode/Xiaomi_Kernel_OpenSource,
+    branch merlin-r-oss, and github.com/MiCode/MTK_kernel_modules) -- GPL-2.0; read, not copied.
+  - Linux mainline (drivers/mmc/host/mtk-sd.c, drivers/gpu/drm/panfrost) -- GPL-2.0; read, not copied.
+
+Not in this repository, by design (LEGAL.md): any file of iOS, any vendor firmware (pulled from the
+user's own phone by pull-firmware.sh), any image of the phone, any screenshot.
