@@ -21,6 +21,10 @@
 #define RAMOOPS_CONSOLE      0x4d09f000ULL
 #define RAMOOPS_CONSOLE_SIZE 0x40000u
 #define RAMOOPS_SIG          0x43474244u
+/* the pmsg zone: Android's request for one XNU boot comes in it (boot-xnu.sh), the kernel's lines for the
+ * host go out in it (kern.redwood.host_keep) */
+#define RAMOOPS_PMSG         0x4d0e0000ULL
+#define RAMOOPS_PMSG_SIZE    0x10000u
 
 #define TOPRGU_BASE          0x10007000ULL
 #define TOPRGU_MODE          (TOPRGU_BASE + 0x00)

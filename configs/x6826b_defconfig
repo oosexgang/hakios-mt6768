@@ -1,0 +1,6 @@
+# HakiOS defconfig for the Infinix Hot 20 (x6826b, MediaTek MT6768): the common kernel's configuration, the MT6768's facts and
+# drivers (mtk/mt6768/configs/mt6768.config in the common repository, which leaves every Qualcomm driver out) and this phone's own.
+# What tools/xnu-cycle.sh runs: make x6826b_defconfig && make kernel, then the kernel into boot_a through mtkloader.
+#include common_defconfig
+#include mt6768.config
+#include x6826b.config

@@ -37,4 +37,13 @@ WAIT_ITERS=$(( (SECS + 300) / 3 ))
 for i in $(seq 1 $WAIT_ITERS); do [ "$(adb -s $S get-state 2>/dev/null)" = device ] && break; sleep 3; done
 sleep 3
 for i in $(seq 1 10); do adb -s $S shell 'su -c "cat /sys/fs/pstore/console-ramoops-0"' > "$OUT" 2>/dev/null && [ -s "$OUT" ] && break; sleep 2; done
+# what the kernel kept for the host (kern.hakios.host_keep, kern.redwood.host_keep in the earlier kernel: the pipeline
+# recipes and the bring-ups' results, whole however long the run was),
+# which mtkloader put into the pmsg zone: appended to the log, when it is this run's and not Android's own
+adb -s $S shell 'su -c "cat /sys/fs/pstore/pmsg-ramoops-0"' > "$OUT.keep" 2>/dev/null || true
+if head -c 64 "$OUT.keep" | grep -q 'kept for the host by the kernel'; then
+	{ echo; cat "$OUT.keep"; } >> "$OUT"
+	echo "kept for the host: $(head -1 "$OUT.keep" | sed 's/^=== kept for the host by the kernel: //; s/ ===$//')"
+fi
+rm -f "$OUT.keep"
 echo "log: $OUT ($(wc -c < "$OUT") bytes)"

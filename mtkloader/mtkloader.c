@@ -230,7 +230,8 @@ struct xnu_syms {
 	uint64_t stub_slot, vc_colors, log, log_len, log_ring_at, log_wrapped, panic_str, panic_args, iso_font,
 	    msgbufp, cpu_ttep, live, uart_tx_ready, uart_tx_data, uart_rx_ready, uart_putc, uart_putc_options, log_putc,
 	    nprocs, tasks_count, initproc, gic_cpu_init,
-	    gic_unhandled_count, gic_last_unhandled, gic_active_iar;
+	    gic_unhandled_count, gic_last_unhandled, gic_active_iar, host_keep, host_keep_len, host_keep_dropped,
+	    hk_keep, hk_keep_len, hk_keep_dropped;
 };
 
 static struct xnu_syms xsyms; /* of the kernel that was started; kept for when it comes back */
@@ -492,6 +493,9 @@ static void find_syms(const uint8_t *kernel, struct xnu_syms *s)
 		"_vmapple_uart_receive_ready", "_uart_putc", "_uart_putc_options", "_loader_log_putc",
 		"_nprocs", "_tasks_count", "_initproc", "_gic_v3_irq_cpu_init",
 		"_gic_unhandled_count", "_gic_last_unhandled", "_gic_active_iar",
+		"_redwood_host_keep", "_redwood_host_keep_len", "_redwood_host_keep_dropped",
+		/* (the same in a kernel of the common tree, hakios-xnu-kernel's mtk/mt6768/drivers/gpu/hakios.mali.c) */
+		"_hakios_host_keep", "_hakios_host_keep_len", "_hakios_host_keep_dropped",
 	};
 	_Static_assert(sizeof(struct xnu_syms) == sizeof(names), "every field needs its name, in order");
 	uint64_t *slots = (uint64_t *)s;
@@ -512,7 +516,7 @@ static void find_syms(const uint8_t *kernel, struct xnu_syms *s)
 	const char *strs = (const char *)(kernel + st->stroff);
 	for (uint32_t i = 0; i < st->nsyms; i++) {
 		const char *n = strs + sym[i].n_strx;
-		if (n[0] != '_' || (n[1] != 'l' && n[1] != 'v' && n[1] != 'd' && n[1] != 'i' && n[1] != 'm' && n[1] != 'c' && n[1] != 'g' && n[1] != 'n' && n[1] != 't')) {
+		if (n[0] != '_' || (n[1] != 'l' && n[1] != 'v' && n[1] != 'd' && n[1] != 'i' && n[1] != 'm' && n[1] != 'c' && n[1] != 'g' && n[1] != 'n' && n[1] != 't' && n[1] != 'r' && n[1] != 'h')) {
 			continue;
 		}
 		for (unsigned k = 0; k < sizeof(names) / sizeof(names[0]); k++) {
@@ -1046,6 +1050,62 @@ static void save_log(const struct span *sp, int nsp)
 	fbc.base = fb;
 }
 
+/*
+ * The kernel's lines for the host (kern.redwood.host_keep, bsd/dev/redwood_mali.c) into ramoops' pmsg
+ * zone, whole: Android shows them as /sys/fs/pstore/pmsg-ramoops-0, and tools/xnu-cycle.sh appends them
+ * to the run's log. Called on each way back from XNU, after the boot request in that zone was taken.
+ */
+static void save_host_keep(const struct xnu_syms *s)
+{
+	static const char head[] = "=== kept for the host by the kernel: ";
+	volatile struct ramoops_hdr *h = (volatile struct ramoops_hdr *)RAMOOPS_PMSG;
+	volatile char *d = (volatile char *)(RAMOOPS_PMSG + sizeof(struct ramoops_hdr));
+	uint32_t cap = RAMOOPS_PMSG_SIZE - sizeof(struct ramoops_hdr), at = 0, len, dropped;
+	char num[12];
+	int n;
+
+	uint64_t keep_va = s->host_keep ? s->host_keep : s->hk_keep;
+	uint64_t len_va = s->host_keep ? s->host_keep_len : s->hk_keep_len;
+	uint64_t dropped_va = s->host_keep ? s->host_keep_dropped : s->hk_keep_dropped;
+
+	if (!keep_va || !len_va) {
+		return;
+	}
+	len = rd32(kva_to_pa(len_va));
+	dropped = dropped_va ? rd32(kva_to_pa(dropped_va)) : 0;
+	for (const char *c = head; *c; c++) {
+		d[at++] = *c;
+	}
+	for (int part = 0; part < 2; part++) {
+		uint32_t v = part ? dropped : len;
+		n = 0;
+		do {
+			num[n++] = (char)('0' + v % 10);
+			v /= 10;
+		} while (v);
+		while (n) {
+			d[at++] = num[--n];
+		}
+		const char *tail = part ? " dropped) ===\n" : " bytes (";
+		for (const char *c = tail; *c; c++) {
+			d[at++] = *c;
+		}
+	}
+	const volatile char *keep = (const volatile char *)kva_to_pa(keep_va);
+	for (uint32_t i = 0; i < len && at < cap; i++) {
+		d[at++] = keep[i];
+	}
+	h->sig = RAMOOPS_SIG;
+	h->start = at;          /* not wrapped: Linux takes data[start..size) then data[0..start) */
+	h->size = at;
+	dcache_clean_range(RAMOOPS_PMSG, RAMOOPS_PMSG_SIZE);
+	out("host_keep: ");
+	out_dec(len);
+	out(" bytes into pmsg, ");
+	out_dec(dropped);
+	out(" lines dropped\n");
+}
+
 /* The last lines of what is in ramoops, on the lower part of the screen. */
 static void show_log_tail(uint32_t lines)
 {
@@ -1420,6 +1480,7 @@ void xnu_returned(uint64_t log_pa, uint64_t len, uint64_t reason, uint64_t code,
 	}
 	save_log(&sp, 1);
 	dbg_puts("=== end of XNU log ===\n");
+	save_host_keep(&xsyms);
 	show_log_tail(40);
 	dbg_delay_ms(20000);
 	reset_board();
@@ -1526,6 +1587,7 @@ static void rescue_log(void)
 	dbg_puts("=== XNU log (from DRAM; a few bits may have flipped in the reset) ===\n");
 	save_log(sp, n);
 	dbg_puts("=== end of XNU log ===\n");
+	save_host_keep(&s);
 	show_log_tail(40);
 }
 
@@ -1844,6 +1906,7 @@ void watcher_main(void)
 		dbg_puts("--- loader_log (head) ---\n");
 		save_log(&sp, 1);
 	}
+	save_host_keep(&xsyms);
 	dbg_puts("=== end of watcher snapshot ===\n");
 	plog_flush();
 	psci_system_reset();
@@ -2905,8 +2968,6 @@ static void touch_hand_back(void)
  * (tools/boot-xnu.sh): ramoops keeps it in its pmsg zone across the reboot, where this finds it
  * and wipes it, so the boot after XNU is Android again.
  */
-#define RAMOOPS_PMSG       0x4d0e0000ULL
-#define RAMOOPS_PMSG_SIZE  0x10000u
 static const char boot_xnu_flag[] = "DARWIN-REDWOOD:BOOT-XNU";
 
 /*

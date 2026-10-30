@@ -17,7 +17,7 @@ QMI) over to this phone.
 | path | what | license |
 | --- | --- | --- |
 | `mtkloader/` | bare-metal loader, runs with the MMU off before XNU | MIT |
-| `kernel/` | this phone's XNU drivers, as paths of the kernel tree (`kernel/README.md`) | APSL 2.0 |
+| `configs/` | `x6826b_defconfig`, `x6826b.config`: the kernel's configuration (its drivers: `hakios-xnu-kernel/mtk/mt6768/`) | MIT |
 | `tools/` | one run (`xnu-cycle.sh`), flashing, probes, log readers | MIT |
 | `docs/` | how each part was found, run by run | MIT |
 | `pull-firmware.sh` | the phone's firmware out of the user's own phone into `fw-*/` | MIT |
@@ -27,7 +27,7 @@ How a boot goes: `mtkloader` is chained in front of Android's kernel in `boot_a`
 (`tools/chainboot.py`, `mtkloader/build_flashed.py`). Android boots normally; `tools/boot-xnu.sh`
 asks it for one XNU boot; the loader brings up what XNU cannot (touch firmware over SPI, PMIC, clocks),
 builds XNU's device tree and boot-args, and starts the kernel. The kernel's root is the iOS system
-image in the `xnusys` partition, read off the eMMC as needed (`kernel/bsd/dev/redwood_emmc.c`,
+image in the `xnusys` partition, read off the eMMC as needed (`mtk/mt6768/drivers/storage/hakios.mtk_emmc.c`,
 `emmc_root=1`, with `rd=md0` kept for libignition). A run ends after `XNU_SECS`, the watchdog
 returns the phone to Android, and the log is read back from pstore (`/sys/fs/pstore/console-ramoops-0`).
 
@@ -46,11 +46,12 @@ follows the same pattern: numbered steps, reading only first, each step's result
 3. **No personal data**: no device serial numbers (scripts read `HAKIOS_SERIAL`), no home-directory
    paths, no tokens, no Wi-Fi names or passwords. The serial given to iOS is the placeholder
    `XNU_SERIAL`.
-4. **Licenses**: `kernel/` is APSL 2.0; everything else is MIT. Do not relabel XNU-derived code as MIT.
+4. **Licenses**: everything here is MIT; the kernel drivers are APSL 2.0 in the common repository's `mtk/`. Do not relabel XNU-derived code as MIT.
    MediaTek's and Linux's GPL sources may be read for register addresses and hardware order and
    named where used, never copied.
 5. **Names**: new code in the common repositories uses `hakios_*`, `kern.hakios.*`, `/dev/hakios-*`.
-   The files here keep the former `redwood_*` prefix until they are merged; do not rename them piecemeal.
+   The kernel drivers carry these names in `hakios-xnu-kernel/mtk/mt6768/`; the loader and the user space that
+   runs on this phone still use the former `redwood` names, to be renamed with them, not piecemeal.
 6. **Commit messages say what the phone did** in the run that proved the change (a log line, a number),
    not only what the code does.
 
@@ -87,7 +88,9 @@ of the common tree). Moving them under the common repository's `devices/<name>/`
 
 ## Reading a run's log
 
-- Kept lines (`kept:` / `!`) are a 96-line ring the kernel repeats every minute: put results there.
+- Kept lines (`kept:` / `!`) are a 96-line ring the kernel repeats every minute: put results there. A bring-up whose
+  results must survive a long run goes to the host buffer as well (`kern.hakios.host_keep`, `hakios_host_keep_add`):
+  the loader puts it into ramoops' pmsg zone and `tools/xnu-cycle.sh` appends it to the log.
 - `tools/fbshot.py` turns `fbshot=` lines into a picture of the screen (for your own checks only:
   never commit it).
 - `tools/frames.py` gives frame timing; `tools/cache-name.py` names shared-cache addresses.

@@ -16,13 +16,13 @@ reads it off the eMMC as it needs it.
 | --- | --- | --- |
 | boot | works | `mtkloader/`: MMU off, eMMC through MSDC0, device tree for XNU; 4 cores |
 | CPU | works | big cores clocked up (`mtk_cpufreq=3`) |
-| storage | works, read only | the system image read off the eMMC as needed (`kernel/bsd/dev/redwood_emmc.c`, `emmc_root=1`): ~2.5 GB of 4 for iOS (docs/x6826b-emmc.md) |
+| storage | works, read only | the system image read off the eMMC as needed (`hakios.mtk_emmc.c`, `emmc_root=1`): ~2.5 GB of 4 for iOS (docs/x6826b-emmc.md) |
 | display | works | 720×1640, iOS at scale 2 |
-| touch | works | OmniVision TD4160 over SPI (`kernel/bsd/dev/redwood_tcm.c`; the loader sends its firmware) |
-| buttons | works | power, volume (`kernel/bsd/dev/redwood_mtkkeys.c`) |
-| GPU | works | Mali-G52 brought up from the kernel (`redwood_mali.c`, `RedwoodMali.cpp`), Mesa's panfrost, a Metal driver: CoreAnimation draws through Metal, iOS 16's own wallpaper |
-| sensors | partial | accelerometer through the SCP sensor hub (`redwood_scp.c`), screen rotation (docs/sensors-x6826b.md) |
-| Wi-Fi / Bluetooth | in progress | CONNSYS powered, firmware in, its CPU running, the WMT command channel over BTIF/STP in full mode (`redwood_connsys.c`, docs/wifi-x6826b.md); no network yet |
+| touch | works | OmniVision TD4160 over SPI (`hakios.tcm.c`; the loader sends its firmware) |
+| buttons | works | power, volume (`hakios.mtk_keys.c`) |
+| GPU | works | Mali-G52 brought up from the kernel (`hakios.mali.c`, `hakios.mali.cpp`), Mesa's panfrost, a Metal driver: CoreAnimation draws through Metal, iOS 16's own wallpaper |
+| sensors | partial | accelerometer through the SCP sensor hub (`hakios.mtk_scp.c`), screen rotation (docs/sensors-x6826b.md) |
+| Wi-Fi / Bluetooth | in progress | CONNSYS powered, firmware in, its CPU running, the WMT command channel over BTIF/STP, the MCU patch by PDA taken (`hakios.mtk_connsys.c`, docs/wifi-x6826b.md); no network yet |
 | audio, camera, haptics, cellular | missing | |
 
 ## What is here
@@ -30,7 +30,8 @@ reads it off the eMMC as it needs it.
 - `mtkloader/` — the bare-metal loader (MIT): chains in front of Android's kernel in `boot_a`, brings up
   what XNU cannot (touch firmware, PMIC, clocks), reads the eMMC, builds XNU's device tree and boot
   arguments.
-- `kernel/` — this phone's drivers in XNU (APSL 2.0, see `kernel/README.md`).
+- `configs/` — `x6826b_defconfig` and `x6826b.config`: the kernel's configuration for this phone. Its drivers are the
+  common repository's MediaTek layer, `hakios-xnu-kernel/mtk/mt6768/` (APSL 2.0).
 - `tools/` — running it: `xnu-cycle.sh` (one run: build, flash `boot_a`, start XNU, fetch the log),
   `boot-xnu.sh`, `chainboot.py`, `system-flash.sh` (the system image into `xnusys`), `gpt-carve.py`,
   probes (`gpu-probe.sh`, `touch-probe.sh`, `msdc-test.sh`), log readers (`fbshot.py`, `frames.py`,
@@ -59,13 +60,21 @@ XNU_SECS=300 XNU_ARGS="cpus=4 touchscreen=2 buttons=2 mali=1 mtk_cpufreq=3 metal
     tools/xnu-cycle.sh                # one run; the log lands in logs/
 ```
 
-The scripts here still expect the layout of the tree they were written in — `mtkloader/` and `tools/`
-at the top of the common tree, next to `xnuloader/` (its `identity.h`, made from your IPSW),
-`xnu-deps/` and `userland/`. Moving them under the common repository's `devices/<name>/` is the next
-step. Kernel files keep the project's former prefix (`redwood_`, `kern.redwood.*`) until they are
-merged into `hakios-xnu-kernel` under `hakios_` names.
+The kernel is built in the common repository, from its MediaTek layer and this repository's configuration:
+
+```sh
+git clone https://github.com/oosexgang/hakios-xnu-kernel.git hakios && cd hakios
+tools/hakios-device.py sync x6826b    # this repository, into devices/x6826b
+make x6826b_defconfig && make kernel  # hakios-kernel: mali mtk_keys mtk_scp tcm mtk_emmc mtk_connsys
+```
+
+The loader and run scripts here still expect the layout of the tree they were written in — `mtkloader/`
+and `tools/` at the top of the common tree, next to `xnuloader/` (its `identity.h`, made from your
+IPSW), `xnu-deps/` and `userland/` — and the user space that runs on this phone still reads the project's
+former names (`kern.redwood.*`, `RedwoodMali`). Moving them under `devices/x6826b/` and the user space to
+the `hakios` names are the next steps.
 
 ## Licenses
 
-`kernel/` is APSL 2.0 (`LICENSE.APSL`), as code built into XNU; everything else is MIT (`LICENSE`).
+Everything here is MIT (`LICENSE`); the kernel drivers this phone uses are APSL 2.0 in the common repository's `mtk/`.
 See `NOTICE` and `LEGAL.md`.
