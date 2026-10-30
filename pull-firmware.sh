@@ -1,9 +1,9 @@
 #!/bin/bash
-# The Infinix Hot 20's firmware, out of YOUR phone's Android, into fw-*/ next to this repository
+# The Infinix Hot 20's firmware, out of YOUR phone's Android, into fw-*/ at the top of the HakiOS tree
 # (git ignores them: they are the vendor's, and nothing of the vendor's is in the repository).
 #
 #   fw-touch/hdl_firmware.img   the touch controller's (OmniVision TD4160): the loader carries it
-#                               (mtkloader/tcm.h; mtkloader/build.sh makes touchfw.h out of it)
+#                               (hakios-xnu-kernel, branch mtk: mtk/loader/tcm.h; mtk/loader/build.sh makes touchfw.h out of it)
 #   fw-connsys/                 CONNSYS's, for Wi-Fi and Bluetooth (docs/wifi-x6826b.md)
 #
 # Android keeps them where the shell user cannot read (SELinux), so this needs root on the phone
@@ -11,7 +11,8 @@
 # nothing on the phone is changed.
 set -e
 S=${HAKIOS_SERIAL:?set HAKIOS_SERIAL to the serial of your phone, as adb devices shows it}
-OUT="${1:-$(cd "$(dirname "$0")" && pwd)}"
+# into the top of the HakiOS tree this repository is synced into (devices/x6826b/), where the loader and the image look
+OUT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
 TMP=/data/local/tmp/hakios-fw
 CONNSYS="soc1_0_patch_mcu_1a_1_hdr.bin soc1_0_ram_mcu_1a_1_hdr.bin soc1_0_ram_wifi_1a_1_hdr.bin
 	soc1_0_ram_bt_1a_1_hdr.bin WIFI_RAM_CODE_soc1_0_1a_1.bin WMT_SOC.cfg wifi.cfg BT_FW.cfg"
