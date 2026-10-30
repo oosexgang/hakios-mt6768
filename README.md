@@ -27,14 +27,22 @@ reads it off the eMMC as it needs it.
 
 ## What is here
 
-This is the device's repository; everything else is the common tree's branch `mtk`
-([hakios-xnu-kernel, branch mtk](https://github.com/oosexgang/hakios-xnu-kernel/tree/mtk)): the kernel and the MT6768's drivers
-(`mtk/mt6768/`), the loader (`mtk/loader/`, mtkloader) and the scripts that build `boot_a` and run the phone (`mtk/tools/`).
-
-- `device.conf` — the phone and the state of each component.
-- `configs/` — `x6826b_defconfig` and `x6826b.config`: the kernel's configuration for this phone.
-- `pull-firmware.sh` — the phone's firmware out of **your** phone into `fw-*/` at the top of the tree (needs root on Android).
+- `mtkloader/` — the bare-metal loader (MIT): chains in front of Android's kernel in `boot_a`, brings up
+  what XNU cannot (touch firmware, PMIC, clocks), reads the eMMC, builds XNU's device tree and boot
+  arguments.
+- `kernel/` — this phone's drivers in XNU (APSL 2.0, see `kernel/README.md`).
+- `tools/` — running it: `xnu-cycle.sh` (one run: build, flash `boot_a`, start XNU, fetch the log),
+  `boot-xnu.sh`, `chainboot.py`, `system-flash.sh` (the system image into `xnusys`), `gpt-carve.py`,
+  probes (`gpu-probe.sh`, `touch-probe.sh`, `msdc-test.sh`), log readers (`fbshot.py`, `frames.py`,
+  `cache-name.py`, `rwm-recipes.py`).
+- `configs/` — `x6826b_defconfig` and `x6826b.config`: the kernel's configuration for this phone in the common tree.
+- `pull-firmware.sh` — the phone's firmware out of **your** phone into `fw-*/` (needs root on Android).
 - `docs/` — how each part was found and what each run showed.
+- `device.conf` — the phone and the state of each component.
+
+The common tree's branch `mtk` ([hakios-xnu-kernel, branch mtk](https://github.com/oosexgang/hakios-xnu-kernel/tree/mtk)) has
+the same loader and scripts (`mtk/loader/`, `mtk/tools/`) and these drivers under `hakios` names (`mtk/mt6768/`), and builds and
+runs them with `make`.
 
 ## Not here, by design
 
@@ -44,10 +52,10 @@ your Mac.
 
 ## Running
 
-What it needs:
+In the common tree, the branch `mtk` (what it needs:
 - an Infinix Hot 20 (X6826B) with an unlocked bootloader, rooted Android (Magisk), its stock
   `boot_a` image saved (`backup/boot_a_magisk.img` at the top of the tree);
-- a Mac, your own Darwin userland 16.5 IPSW (for `xnuloader/identity.h`).
+- a Mac, your own Darwin userland 16.5 IPSW (for `xnuloader/identity.h`)).
 
 ```sh
 git clone -b mtk https://github.com/oosexgang/hakios-xnu-kernel.git hakios && cd hakios
@@ -62,7 +70,16 @@ make phone SECS=300 RAMDISK=...         # boot_a written, XNU once, Android back
 The user space that runs on this phone (Mesa's panfrost, the Metal driver) still reads the project's former names
 (`kern.redwood.*`, `RedwoodMali`) and is not yet in the common tree; `RAMDISK=` and the system image in `xnusys` are its.
 
+With this repository's own `tools/`, in the layout of the tree they were written in (`mtkloader/` and `tools/` at its top, next
+to `xnuloader/`, `xnu-deps/` and `userland/`):
+
+```sh
+./pull-firmware.sh                   # fw-touch/, fw-connsys/ next to this repository's mtkloader/
+XNU_SECS=300 XNU_ARGS="cpus=4 touchscreen=2 buttons=2 mali=1 mtk_cpufreq=3 metal=1 camtl=1" \
+    tools/xnu-cycle.sh                # one run; the log lands in logs/
+```
+
 ## Licenses
 
-Everything here is MIT (`LICENSE`); the kernel drivers this phone uses are APSL 2.0 in the common repository's `mtk/`.
+`kernel/` is APSL 2.0 (`LICENSE.APSL`), as code built into XNU; everything else is MIT (`LICENSE`).
 See `NOTICE` and `LEGAL.md`.

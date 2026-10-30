@@ -16,13 +16,16 @@ QMI) over to this phone.
 
 | path | what | license |
 | --- | --- | --- |
+| `mtkloader/` | bare-metal loader, runs with the MMU off before XNU | MIT |
+| `kernel/` | this phone's XNU drivers, as paths of the kernel tree (`kernel/README.md`) | APSL 2.0 |
 | `configs/` | `x6826b_defconfig`, `x6826b.config`: the kernel's configuration (its drivers: `hakios-xnu-kernel/mtk/mt6768/`) | MIT |
+| `tools/` | one run (`xnu-cycle.sh`), flashing, probes, log readers | MIT |
 | `docs/` | how each part was found, run by run | MIT |
 | `pull-firmware.sh` | the phone's firmware out of the user's own phone into `fw-*/` | MIT |
 | `device.conf` | the phone and each component's state (`works` / `partial` / `missing`) | |
 
-The loader and the scripts are the common tree's branch `mtk`: `mtk/loader/` (mtkloader), `mtk/tools/` (one run, flashing,
-probes, log readers); paths below are that tree's.
+The common tree's branch `mtk` has the same loader and scripts as `mtk/loader/` and `mtk/tools/`, and the drivers of `kernel/`
+under `hakios` names as `mtk/mt6768/drivers/`; a change to one belongs in the other as well. Paths below are that tree's.
 
 How a boot goes: `mtkloader` is chained in front of Android's kernel in `boot_a`
 (`mtk/tools/chainboot.py`, `mtk/loader/build_flashed.py`). Android boots normally; `mtk/tools/boot-xnu.sh`
@@ -47,12 +50,12 @@ follows the same pattern: numbered steps, reading only first, each step's result
 3. **No personal data**: no device serial numbers (scripts read `HAKIOS_SERIAL`), no home-directory
    paths, no tokens, no Wi-Fi names or passwords. The serial given to iOS is the placeholder
    `XNU_SERIAL`.
-4. **Licenses**: everything here is MIT; the kernel drivers are APSL 2.0 in the common repository's `mtk/`. Do not relabel XNU-derived code as MIT.
+4. **Licenses**: `kernel/` is APSL 2.0; everything else is MIT. Do not relabel XNU-derived code as MIT.
    MediaTek's and Linux's GPL sources may be read for register addresses and hardware order and
    named where used, never copied.
 5. **Names**: new code in the common repositories uses `hakios_*`, `kern.hakios.*`, `/dev/hakios-*`.
-   The kernel drivers carry these names in `hakios-xnu-kernel/mtk/mt6768/`; the loader and the user space that
-   runs on this phone still use the former `redwood` names, to be renamed with them, not piecemeal.
+   The files of `kernel/` keep the former `redwood_*` prefix; the common tree's `mtk/mt6768/` has them as `hakios.*`.
+   The loader and the user space that runs on this phone still use the former names too: rename them together, not piecemeal.
 6. **Commit messages say what the phone did** in the run that proved the change (a log line, a number),
    not only what the code does.
 
@@ -78,6 +81,9 @@ devices/x6826b/pull-firmware.sh
 make x6826b_defconfig && make kernel
 make phone SECS=300 RAMDISK=...
 ```
+
+Or with this repository's own `tools/xnu-cycle.sh`, in the layout of the tree it was written in (`mtkloader/` and `tools/` at
+its top): `XNU_SECS=300 XNU_ARGS="..." tools/xnu-cycle.sh`.
 
 The boot partition is 33,554,432 bytes: check the size line that `build_flashed.py` prints (33,187,840 with the common tree's
 kernel and the earlier RAM disk, 30 October); the loader is built `-Os` for that reason.
