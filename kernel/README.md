@@ -12,7 +12,9 @@ into XNU.
 | `bsd/dev/redwood_mali.c` | the Mali-G52 brought up: power, clocks, MMU, jobs | `mali=1` |
 | `iokit/Kernel/RedwoodMali.cpp` | the GPU for programs: panfrost's DRM interface as an IOKit user client | `mali=1` |
 | `bsd/dev/redwood_scp.c` | the SCP sensor hub: accelerometer, `kern.redwood.accel` | `scp_step=7` |
-| `bsd/dev/redwood_connsys.c` | CONNSYS (Wi-Fi/Bluetooth): power, firmware, BTIF, STP/WMT | `connsys_step=1..8` |
+| `bsd/dev/redwood_connsys.c` | CONNSYS (Wi-Fi/Bluetooth): power, firmware, the MCU patch (PDA), BTIF, STP/WMT, `connsys_sw_init` | `connsys_step=1..11` |
+| `bsd/dev/redwood_mtkwifi.c` | the Wi-Fi itself (gen4m CONNAC on AXI): firmware, scan, WPA2 join, `en0`; the network is listed and joined in Settings | `connsys_step=12..17` |
+| `bsd/dev/redwood_wpa.c`, `bsd/sys/redwood_wpa.h` | the WPA2 supplicant: the 4-way handshake and the keys, built by the host | (with `connsys_step=17`) |
 
 They are not a kernel on their own: they hook into the common kernel (its `bsd/conf/files`, the input
 device `/dev/redwood-touch`, the display driver, `IOFindBSDRoot` for `emmc_root=1`), which lives in the
