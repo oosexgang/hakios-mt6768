@@ -1,5 +1,7 @@
 # hakios-mt6768
 
+English · [Русский](README.ru.md)
+
 HakiOS for the **Infinix Hot 20 (X6826B)**: MediaTek Helio G85 (**MT6768**), GPU **Mali-G52 MC2**, eMMC.
 iOS 16.5's own user space (launchd → backboardd → SpringBoard → apps) on Apple's open XNU kernel
 (xnu-8796.121.2), with this phone's own loader and drivers. The first MediaTek phone of the project;
@@ -22,7 +24,8 @@ reads it off the eMMC as it needs it.
 | buttons | works | power, volume (`hakios.mtk_keys.c`) |
 | GPU | works | Mali-G52 brought up from the kernel (`hakios.mali.c`, `hakios.mali.cpp`), Mesa's panfrost, a Metal driver: CoreAnimation draws through Metal, iOS 16's own wallpaper |
 | sensors | partial | accelerometer through the SCP sensor hub (`hakios.mtk_scp.c`), screen rotation (docs/sensors-x6826b.md) |
-| Wi-Fi / Bluetooth | in progress | CONNSYS powered, firmware in, its CPU running, the WMT command channel over BTIF/STP, the MCU patch by PDA taken (`hakios.mtk_connsys.c`, docs/wifi-x6826b.md); no network yet |
+| Wi-Fi | works | the gen4m driver: scan, WPA2 join from Settings, the Internet and Safari over it (`hakios.mtk_connsys.c`, docs/wifi-x6826b.md) |
+| Bluetooth | in progress | the same CONNSYS as Wi-Fi; HCI over STP not yet |
 | audio, camera, haptics, cellular | missing | |
 
 ## What is here
