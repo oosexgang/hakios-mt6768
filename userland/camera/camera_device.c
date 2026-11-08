@@ -226,7 +226,13 @@ static void
 install_msg_hook(void)
 {
 	static bool done;
-	uintptr_t stub = 0x1a23dc5c0UL + redwood_cache_slide();       /* an objc_stubs entry of CMCapture (+[..copyProperty:error:]'s), unslid 0x1a23dc5c0 */
+#ifndef CAM_TRACE_STUB
+	/* No address of the user's own cache is kept in the tree: for CAM_TRACE=1 build with -DCAM_TRACE_STUB=0x... (the unslid address of an
+	 * objc_stubs entry of CMCapture in the iOS cache you built from, found with tools/dsc/objcstub.py) */
+	say("msg hook: CAM_TRACE_STUB is not set in this build: no message trace");
+	return;
+#else
+	uintptr_t stub = (uintptr_t)(CAM_TRACE_STUB) + redwood_cache_slide();
 	const uint32_t *w = (const uint32_t *)stub;
 	uintptr_t page, slot;
 	int64_t imm;
@@ -252,6 +258,7 @@ install_msg_hook(void)
 	redwood_msg_orig = *(void **)slot;
 	*(void **)slot = (void *)redwood_msg_hook;
 	say("msg hook: slot %lx, objc_msgSend %p -> %p", (unsigned long)slot, redwood_msg_orig, (void *)redwood_msg_hook);
+#endif /* CAM_TRACE_STUB */
 }
 
 
