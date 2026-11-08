@@ -3,6 +3,11 @@
 fw-*/
 mtkloader/touchfw.h
 mtkloader/font8x16.h
+# the camera's register tables are the vendor's: made by tools/camtable.py and tools/camrx.py from your own phone
+mtkloader/camjn1.h
+mtkloader/camrx.h
+kernel/bsd/dev/redwood_mtkcam_jn1.h
+kernel/bsd/dev/redwood_mtkcam_rx.h
 mtkloader/*.o
 mtkloader/*.bin
 mtkloader/*.gz

@@ -102,7 +102,7 @@ connsys_pwrap_wait(uint32_t state)
 }
 
 static bool
-connsys_pmic_read(uint32_t reg, uint32_t *value)
+connsys_pmic_read_raw(uint32_t reg, uint32_t *value)
 {
 	if (!connsys_pwrap_wait(0)) {
 		return false;
@@ -114,6 +114,17 @@ connsys_pmic_read(uint32_t reg, uint32_t *value)
 	*value = rd(connsys_pwrap, PWRAP_WACS2_RDATA) & 0xffff;
 	*(volatile uint32_t *)(connsys_pwrap + PWRAP_WACS2_VLDCLR) = 1;
 	return true;
+}
+
+static bool
+connsys_pmic_read(uint32_t reg, uint32_t *value)
+{
+	bool ok;
+
+	redwood_pwrap_lock();
+	ok = connsys_pmic_read_raw(reg, value);
+	redwood_pwrap_unlock();
+	return ok;
 }
 
 static void
@@ -137,13 +148,24 @@ connsys_power_report(void)
 }
 
 static bool
-connsys_pmic_write(uint32_t reg, uint32_t value)
+connsys_pmic_write_raw(uint32_t reg, uint32_t value)
 {
 	if (!connsys_pwrap_wait(0)) {
 		return false;
 	}
 	*(volatile uint32_t *)(connsys_pwrap + PWRAP_WACS2_CMD) = (1u << 31) | (reg >> 1) << 16 | (value & 0xffff);
 	return connsys_pwrap_wait(0);
+}
+
+static bool
+connsys_pmic_write(uint32_t reg, uint32_t value)
+{
+	bool ok;
+
+	redwood_pwrap_lock();
+	ok = connsys_pmic_write_raw(reg, value);
+	redwood_pwrap_unlock();
+	return ok;
 }
 
 /* a PMIC register's bits under `mask` set to `value`, read back; false if the wrapper did not answer */
