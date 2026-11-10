@@ -25,7 +25,7 @@ HakiOS для **Infinix Hot 20 (X6826B)**: MediaTek Helio G85 (**MT6768**), GPU 
 | GPU | работает | Mali-G52 поднят из ядра (`hakios.mali.c`, `hakios.mali.cpp`), panfrost в Mesa, драйвер Metal: CoreAnimation рисует через Metal, родные обои iOS 16 |
 | датчики | частично | акселерометр через сенсорный хаб SCP (`hakios.mtk_scp.c`), поворот экрана (docs/sensors-x6826b.md) |
 | Wi-Fi | работает | драйвер gen4m: скан, подключение WPA2 из Настроек, интернет и Safari через него (`hakios.mtk_connsys.c`, docs/wifi-x6826b.md) |
-| Bluetooth | в работе | тот же CONNSYS, что и Wi-Fi; HCI через STP пока нет |
+| Bluetooth | частично | `bluetoothd` из iOS 16.5 на MT6631 (HCI через STP): включён, приложения видят настоящие BLE-устройства, в Настройках переключатель, имя и устройства; подтверждённого сопряжения, профилей и звука пока нет (docs/bluetooth-x6826b.md; для другого телефона MediaTek docs/bluetooth-mtk-porting.md) |
 | звук, камера, вибро, сотовая | нет | |
 
 ## Что здесь лежит

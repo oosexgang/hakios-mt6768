@@ -102,7 +102,7 @@ kernel and the earlier RAM disk, 30 October); the loader is built `-Os` for that
 
 What works and what does not is in `device.conf` and `README.md`. The open work, in order:
 - Wi-Fi: WMT reset, function on, then the gen4m driver (docs/wifi-x6826b.md);
-- Bluetooth: HCI over STP;
+- Bluetooth: a confirmed pairing, the profiles (A2DP, HFP, HID) and audio, LE GATT from an app (docs/bluetooth-x6826b.md);
 - first-use pipeline compiles in the Metal driver;
 - rounded-corner masks drawn black;
 - audio, battery, haptics.
